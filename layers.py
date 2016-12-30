@@ -9,6 +9,8 @@ class Layer(object):
     Y, dy = None, None
     W, dw = None, None
 
+    stochastic = False
+
     def __init__(self, X):
         self.X = X
         self.dx = np.zeros_like(X)
@@ -110,6 +112,32 @@ class sigmoid(Layer):
 
     def step(self, lr, reg):
         pass
+
+
+class dropout(Layer):
+    """Dropout layer"""
+
+    stochastic = True
+
+    def __init__(self, X, prob):
+        self.p = prob
+        self.reshape(X.shape)
+        super().__init__(X)
+
+    def fwd(self):
+        if self.stochastic:
+            self.mask = (np.random.uniform(size=self.X.shape)
+                         > self.p) / (1 - self.p)
+        self.Y = self.X * self.mask
+
+    def bck(self):
+        self.dx = self.dy * self.mask
+
+    def step(self, lr, reg):
+        pass
+
+    def reshape(self, shape):
+        self.mask = np.ones(shape)
 
 
 class softmax(Layer):

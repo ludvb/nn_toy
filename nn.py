@@ -112,7 +112,12 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
                     else:
                         layer.reshape(layers[i - 1].Y.shape)
                         layer.X = layers[i - 1].Y
+
+                    temp = layer.stochastic
+                    layer.stochastic = False
                     layer.fwd()
+                    layer.stochastic = temp
+
                 z = np.argmax(layers[-2].Y, axis=1).reshape(xx.shape)
 
                 plt.clf()
