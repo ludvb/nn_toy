@@ -23,9 +23,9 @@ def gen_data(N, K, D):
 
     for k in range(K):
         n = int(N / K)
-        r = np.linspace(0.1, 1, n)
-        t = np.linspace(0, 2 * 2 * np.pi / K, n) + 2 * np.pi * k / K
-        t += np.random.uniform(0, 2 * np.pi / (2 * K), n)
+        r = np.linspace(0.02, 1, n)
+        t = np.linspace(0, 1.5 * K * 2 * np.pi / K, n) + 2 * np.pi * k / K
+        t += np.random.uniform(0, 2 * np.pi / (8 * K), n)
 
         idx = slice(n * k, n * (k + 1))
         X[idx, :] = np.transpose(
@@ -35,7 +35,7 @@ def gen_data(N, K, D):
     return X, Y
 
 
-def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
+def main(N=300, K=3, D=2, nodes=100, lr=1e-3, reg=1e-8):
     """Main"""
     # Generate and plot data set
     X, Y = gen_data(N, K, D)
@@ -57,7 +57,11 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
     layers = []
     layers += [L.input(X)]
     layers += [L.fc(layers[-1].Y, nodes)]
-    layers += [L.relu(layers[-1].Y)]
+    layers += [L.sigmoid(layers[-1].Y)]
+    layers += [L.dropout(layers[-1].Y, 0.25)]
+    layers += [L.fc(layers[-1].Y, nodes)]
+    layers += [L.sigmoid(layers[-1].Y)]
+    layers += [L.dropout(layers[-1].Y, 0.25)]
     layers += [L.fc(layers[-1].Y, K)]
     layers += [L.softmax(layers[-1].Y)]
     layers += [L.loss(layers[-1].Y, Y)]
@@ -83,7 +87,11 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
                 pdb.set_trace()
 
             print("Iteration {}, Loss = {:.4f}"
-                  .format(itx, np.asscalar(layers[-1].Y)))
+                  .format(itx, np.asscalar(layers[-1].Y)),
+                  end='\r')
+
+            if itx % 1000 == 0:
+                print("")
 
             # Backprop
             for i in list(range(nlayers))[::-1]:
@@ -184,4 +192,4 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
 
 
 if __name__ == "__main__":
-    main(300, 15, 2, 100)
+    main(1000, 5, 2, 100, 1e-3, 1e-8)

@@ -67,7 +67,7 @@ class fc(Layer):
         super().__init__(X)
 
     def fwd(self):
-        self.Y[...] = np.dot(self._x_bias(), self.W)
+        self.Y = np.dot(self._x_bias(), self.W)
 
     def bck(self):
         self.dx = np.dot(self.dy, self.W.T[:, :-1])
