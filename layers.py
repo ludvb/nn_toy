@@ -159,3 +159,20 @@ class loss(Layer):
 
     def step(self, lr, reg):
         pass
+
+
+class sum(Layer):
+    """Summing operator"""
+
+    def __init__(self, X):
+        self.Y = np.array([[0.]])
+        super().__init__(X)
+
+    def fwd(self):
+        self.Y[...] = np.sum(self.X)
+
+    def bck(self):
+        self.dx = np.ones_like(self.X)
+
+    def step(self, lr, reg):
+        pass
