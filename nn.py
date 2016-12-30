@@ -7,6 +7,7 @@
 import pdb
 
 import matplotlib.pyplot as plt
+import matplotlib.colors as col
 import numpy as np
 
 import layers as L
@@ -22,9 +23,9 @@ def gen_data(N, K, D):
 
     for k in range(K):
         n = int(N / K)
-        r = np.linspace(0.01, 1, n)
+        r = np.linspace(0.1, 1, n)
         t = np.linspace(0, 2 * 2 * np.pi / K, n) + 2 * np.pi * k / K
-        t += np.random.uniform(0, 2 * np.pi / 6, n)
+        t += np.random.uniform(0, 2 * np.pi / (2 * K), n)
 
         idx = slice(n * k, n * (k + 1))
         X[idx, :] = np.transpose(
@@ -34,15 +35,20 @@ def gen_data(N, K, D):
     return X, Y
 
 
-def main(N=300, K=3, D=2, nodes=100, reg=1e-3):
+def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
     """Main"""
     # Generate and plot data set
     X, Y = gen_data(N, K, D)
 
     print("Plotting data...")
+    col_levels = np.array(list(range(K + 1)), dtype=np.float) - 0.5
+    col_cmap = plt.cm.gist_rainbow
+    col_norm = col.BoundaryNorm(col_levels, col_cmap.N)
+
     plt.ion()
     plt.subplot(1, 1, 1)
-    plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.winter)
+    plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=col_cmap, norm=col_norm,
+                vmin=np.min(Y), vmax=np.max(Y))
     plt.draw()
 
     input("Press <ENTER> to continue.")
@@ -50,12 +56,9 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-3):
     # Set up layers
     layers = []
     layers += [L.input(X)]
-    layers += [L.fc(layers[-1].Y, 50)]
-    layers += [L.sigmoid(layers[-1].Y)]
-    layers += [L.fc(layers[-1].Y, 50)]
-    layers += [L.sigmoid(layers[-1].Y)]
-    layers += [L.fc(layers[-1].Y, 4)]
-    layers += [L.sigmoid(layers[-1].Y)]
+    layers += [L.fc(layers[-1].Y, nodes)]
+    layers += [L.relu(layers[-1].Y)]
+    layers += [L.fc(layers[-1].Y, K)]
     layers += [L.softmax(layers[-1].Y)]
     layers += [L.loss(layers[-1].Y, Y)]
 
@@ -90,9 +93,9 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-3):
                     layers[i].dy = layers[i + 1].dx
 
                 layers[i].bck()
-                layers[i].step(1e-3, 1e-8)
+                layers[i].step(1e-3, reg)
 
-            if itx % 5000 == 0:
+            if itx % 100 == 0:
                 range_ = [np.max(X[:, i]) - np.min(X[:, i]) for i in (0, 1)]
                 x, y = [
                     np.linspace(np.min(X[:, i]) - range_[i]/2,
@@ -113,8 +116,10 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-3):
                 z = np.argmax(layers[-2].Y, axis=1).reshape(xx.shape)
 
                 plt.clf()
-                plt.contourf(xx, yy, z, cmap=plt.cm.winter)
-                plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=plt.cm.winter)
+                plt.contourf(xx, yy, z, levels=col_levels, cmap=col_cmap,
+                             norm=col_norm)
+                plt.scatter(X[:, 0], X[:, 1], c=Y, cmap=col_cmap,
+                            norm=col_norm)
                 plt.draw()
                 plt.pause(1e-10)
 
@@ -159,4 +164,4 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-3):
 
 
 if __name__ == "__main__":
-    main(300, 4, 2, 5)
+    main(300, 15, 2, 100)
