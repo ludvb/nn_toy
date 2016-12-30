@@ -93,9 +93,57 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
                     layers[i].dy = layers[i + 1].dx
 
                 layers[i].bck()
-                layers[i].step(1e-3, reg)
 
-            if itx % 100 == 0:
+                if itx % 5000 == 0:  # Gradient check
+                    if np.all(layers[i].dx == 0):
+                        continue
+
+                    r, c = [
+                        np.random.choice(layers[i].X.shape[j])
+                        for j in (0, 1)
+                    ]
+                    h = 1e-4
+
+                    if abs(layers[i].dx[r, c]) < 1e-5:
+                        continue
+
+                    print("Checking gradient on {}...".format(layers[i]),
+                          end=' ')
+
+                    X_store = layers[i].X
+
+                    Y_ = []
+                    for X_ in [
+                            layers[i].X[r, c] + s * h
+                            for s in (-1, 1)
+                    ]:
+                        layers[i].X[r, c] = X_
+
+                        for j in range(i, nlayers):
+                            if j > i:
+                                layers[j].X = layers[j - 1].Y
+
+                            stochastic_store = layers[j].stochastic
+                            layers[j].stochastic = False
+                            layers[j].fwd()
+                            layers[j].stochastic = stochastic_store
+
+                        Y_.append(np.asscalar(layers[-1].Y))
+
+                    layers[i].X = X_store
+
+                    dx = layers[i].dx[r, c]
+                    ndx = (Y_[1] - Y_[0]) / (2 * h)
+                    diff = abs(ndx - dx) / max(abs(ndx), abs(dx), 1e-10)
+
+                    print("Diff: {:.8f}".format(diff))
+                    if diff > 1e-2:
+                        pdb.set_trace()
+
+            for layer in layers:
+                layer.step(lr, reg)
+
+            if itx % 1000 == 0:
                 range_ = [np.max(X[:, i]) - np.min(X[:, i]) for i in (0, 1)]
                 x, y = [
                     np.linspace(np.min(X[:, i]) - range_[i]/2,
@@ -127,39 +175,6 @@ def main(N=300, K=3, D=2, nodes=100, reg=1e-8):
                             norm=col_norm)
                 plt.draw()
                 plt.pause(1e-10)
-
-            if False:  # Gradient check
-                for i in list(range(nlayers))[::-1]:
-                    if np.all(layers[i].dx == 0):
-                        continue
-
-                    print("Checking gradient on {}".format(layers[i]))
-                    r, c = [
-                        np.random.choice(layers[i].X.shape[j])
-                        for j in (0, 1)
-                    ]
-                    h = 1e-8
-
-                    Y_ = []
-                    for X_ in [
-                            layers[i].X[r, c] + s * h
-                            for s in (-1, 1)
-                    ]:
-                        layers[i].X[r, c] = X_
-
-                        for j in range(i, nlayers):
-                            if j > i:
-                                layers[j].reshape(layers[j - 1].Y.shape)
-                                layers[j].X = layers[j - 1].Y
-                            layers[j].fwd()
-
-                        Y_.append(np.asscalar(layers[-1].Y))
-
-                    ndx = (Y_[1] - Y_[0]) / (2 * h)
-                    print("Analytical: {}, Numerical: {}".format(
-                        layers[i].dx[r, c], ndx
-                    ))
-                    input("")
 
             itx += 1
 
