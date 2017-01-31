@@ -1,6 +1,6 @@
 #!/bin/env python3
 
-"""Some module docstring"""
+"""nn_toy"""
 
 # pylint: disable=invalid-name, no-member
 
